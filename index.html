@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Njagua T-Rex Game Clone</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to bottom, #6a11cb, #2575fc);
+      color: #fff;
+    }
+
+    canvas {
+      display: block;
+      background: #fdf5e6;
+      border: 2px solid #333;
+      margin: 20px auto;
+      box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    #score {
+      position: absolute;
+      bottom: 50px;
+      right: 20px;
+      font-size: 20px;
+      font-weight: bold;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+      color: #fff;
+    }
+
+    #register {
+      position: absolute;
+      top: 10px;
+      right: 20px;
+      font-size: 18px;
+      color: #fff;
+      text-align: center;
+    }
+
+    #register input {
+      padding: 5px;
+      font-size: 16px;
+      border: 2px solid #333;
+      border-radius: 5px;
+    }
+
+    #register button {
+      padding: 6px 12px;
+      font-size: 16px;
+      background: #4caf50;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    #register button:hover {
+      background: #45a049;
+    }
+
+    #gameOver {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 32px;
+      font-weight: bold;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      display: none;
+      color: #fff;
+    }
+
+    #restartButton {
+      margin-top: 15px;
+      padding: 10px 20px;
+      font-size: 18px;
+      background: #ff5722;
+      color: #fff;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    #restartButton:hover {
+      background: #e64a19;
+    }
+
+    #muteButton {
+      position: absolute;
+      bottom: 10px;
+      right: 20px;
+      background: #f44336;
+      color: #fff;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    #muteButton:hover {
+      background: #d32f2f;
+    }
+
+    #title {
+      text-align: center;
+      font-size: 36px;
+      margin-top: 20px;
+      text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+    }
+
+    #rules {
+      text-align: center;
+      margin: 20px;
+      font-size: 20px;
+    }
+
+    @media screen and (max-width: 768px) {
+      canvas {
+        width: 90%;
+      }
+      #score {
+        font-size: 18px;
+      }
+      #register button {
+        font-size: 14px;
+      }
+      #register input {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1 id="title">Njagua T-Rex Game Clone</h1>
+  <div id="rules">
+    <p>How to Play: Use the <strong>Spacebar</strong> to jump and avoid obstacles. Try to score as much as you can!</p>
+  </div>
+
+  <div id="score">Score: 0</div>
+  <div id="register">
+    <label for="username">Name: </label>
+    <input type="text" id="username" placeholder="Enter your name">
+    <button onclick="startGame()">Start</button>
+  </div>
+  <div id="gameOver">
+    <p id="gameOverText">Game Over!</p>
+    <button id="restartButton" onclick="restartGame()">Restart</button>
+  </div>
+  <canvas id="gameCanvas"></canvas>
+  <button id="muteButton" onclick="toggleMute()">Mute</button>
+
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    canvas.width = 800;
+    canvas.height = 200;
+
+    const GRAVITY = 0.6;
+    const JUMP_FORCE = -12;
+    const TREX_WIDTH = 44;
+    const TREX_HEIGHT = 50;
+    const OBSTACLE_WIDTH = 20;
+    const OBSTACLE_HEIGHT = 40;
+
+    const TREX_IMG = new Image();
+    TREX_IMG.src = './assets/trex.png';
+    const OBSTACLE_IMG = new Image();
+    OBSTACLE_IMG.src = './assets/obstacle.png';
+
+    let trex = { x: 50, y: canvas.height - TREX_HEIGHT, width: TREX_WIDTH, height: TREX_HEIGHT, dy: 0, grounded: true };
+    let obstacles = [];
+    let score = 0;
+    let gameSpeed = 5;
+    let username = '';
+    const jumpSound = new Audio('./assets/jump.mp3');
+    let gameOver = false;
+    let muted = false;
+    let obstacleInterval = 1500;
+
+    function drawTrex() {
+      ctx.drawImage(TREX_IMG, trex.x, trex.y, trex.width, trex.height);
+    }
+
+    function drawObstacles() {
+      obstacles.forEach(obstacle => {
+        ctx.drawImage(OBSTACLE_IMG, obstacle.x, obstacle.y, OBSTACLE_WIDTH, OBSTACLE_HEIGHT);
+      });
+    }
+
+    function updateTrex() {
+      if (!trex.grounded) {
+        trex.dy += GRAVITY;
+      }
+      trex.y += trex.dy;
+
+      if (trex.y >= canvas.height - TREX_HEIGHT) {
+        trex.y = canvas.height - TREX_HEIGHT;
+        trex.grounded = true;
+        trex.dy = 0;
+      }
+    }
+
+    function updateObstacles() {
+      obstacles.forEach(obstacle => {
+        obstacle.x -= gameSpeed;
+      });
+
+      if (obstacles.length && obstacles[0].x < -OBSTACLE_WIDTH) {
+        obstacles.shift();
+        score++;
+        gameSpeed += 0.2; // Increase speed as score increases
+        obstacleInterval = Math.max(800, obstacleInterval - 50); // Reduce interval for spawning obstacles
+        document.getElementById('score').innerText = `Score: ${score}`;
+      }
+    }
+
+    function spawnObstacle() {
+      obstacles.push({
+        x: canvas.width,
+        y: canvas.height - OBSTACLE_HEIGHT,
+      });
+    }
+
+    function checkCollision() {
+      for (const obstacle of obstacles) {
+        if (
+          trex.x < obstacle.x + OBSTACLE_WIDTH &&
+          trex.x + TREX_WIDTH > obstacle.x &&
+          trex.y < obstacle.y + OBSTACLE_HEIGHT &&
+          trex.y + TREX_HEIGHT > obstacle.y
+        ) {
+          endGame();
+          break;
+        }
+      }
+    }
+
+    function endGame() {
+      gameOver = true;
+      document.getElementById('gameOver').style.display = 'block';
+      document.getElementById('gameOverText').innerText = `${username}, Game Over! Final Score: ${score}`;
+      cancelAnimationFrame(gameLoop);
+    }
+
+    function restartGame() {
+      trex.y = canvas.height - TREX_HEIGHT;
+      trex.dy = 0;
+      trex.grounded = true;
+      obstacles = [];
+      score = 0;
+      gameSpeed = 5;
+      obstacleInterval = 1500;
+      gameOver = false;
+      document.getElementById('score').innerText = 'Score: 0';
+      document.getElementById('gameOver').style.display = 'none';
+      gameLoop();
+    }
+
+    function toggleMute() {
+      muted = !muted;
+      jumpSound.muted = muted;
+      document.getElementById('muteButton').innerText = muted ? 'Unmute' : 'Mute';
+    }
+
+    function gameLoop() {
+      if (gameOver) return;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      drawTrex();
+      drawObstacles();
+
+      updateTrex();
+      updateObstacles();
+      checkCollision();
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    function startGame() {
+      username = document.getElementById('username').value || 'Player';
+      document.getElementById('register').style.display = 'none';
+      setInterval(spawnObstacle, obstacleInterval);
+      gameLoop();
+    }
+
+    document.addEventListener('keydown', e => {
+      if (e.code === 'Space' && trex.grounded) {
+        trex.dy = JUMP_FORCE;
+        trex.grounded = false;
+        if (!muted) jumpSound.play();
+      }
+    });
+  </script>
+</body>
+</html>
