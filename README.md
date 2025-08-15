@@ -1,8 +1,8 @@
-Njagua T-Rex Game Clone
+FadelSM T-Rex Game Clone
 
 Overview
 
-Njagua T-Rex Game Clone is a browser-based arcade game inspired by the classic T-Rex runner game. It features a T-Rex that the player controls to jump over obstacles to achieve the highest possible score. This version includes added features like user registration, dynamic difficulty, dark/light mode, and responsive design for an enhanced gaming experience.
+FadelSM T-Rex Game Clone is a browser-based arcade game inspired by the classic T-Rex runner game. It features a T-Rex that the player controls to jump over obstacles to achieve the highest possible score. This version includes added features like user registration, dynamic difficulty, dark/light mode, and responsive design for an enhanced gaming experience.
 
 Features
 
